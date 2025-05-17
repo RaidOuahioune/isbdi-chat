@@ -35,7 +35,6 @@ interface ToolSelectionParams extends StreamingParams {
   content: string;
   selectedTools: Tool[];
   setToolUsed: (used: boolean) => void;
-  openDetailPanel: (content: any) => void;
 }
 
 // Extracted function to handle Gemini streaming with history
@@ -118,19 +117,15 @@ async function handleToolSelection({
   updateThreadMessages,
   setIsStreaming,
   setStreamingContent,
-  setToolUsed,
-  openDetailPanel
+  setToolUsed
 }: ToolSelectionParams): Promise<void> {
   const selectedTool = selectedTools[0]; // Currently only supporting one tool at a time
   
   // Call the tool-specific API
   const apiResponse = await callToolSpecificApi(content, selectedTool, activeThreadId);
   
-  // Store the full API response for the detail panel
-  openDetailPanel({
-    toolName: selectedTool.name,
-    response: apiResponse.toolResults?.[0]?.result || apiResponse.content
-  });
+  // Store the API response data in the message for later use in the detail panel
+  // But don't automatically open the panel
   
   // Start streaming the summary
   setIsStreaming(true);
@@ -179,7 +174,7 @@ async function handleToolSelection({
     }
   }
   
-  // Create the final message with the complete summary
+
   const assistantMessage: Message = {
     id: apiResponse.id || uuidv4(),
     content: summaryText,
@@ -188,7 +183,7 @@ async function handleToolSelection({
     toolResults: [{
       id: uuidv4(),
       toolName: selectedTool.name,
-      result: 'View details for the complete response'
+      result: apiResponse.toolResults?.[0]?.result || apiResponse.content
     }]
   };
   
@@ -275,8 +270,7 @@ export const useChatViewModel = (): ChatViewModel => {
           updateThreadMessages,
           setIsStreaming,
           setStreamingContent,
-          setToolUsed,
-          openDetailPanel
+          setToolUsed
         });
       } 
       // If no tool is selected and tools haven't been used yet

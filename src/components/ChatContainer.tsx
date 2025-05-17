@@ -82,7 +82,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
                     <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '0ms' }}></div>
                     <div className="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '150ms' }}></div>
                     <div className="w-2 h-2 rounded-full bg-blue-600 animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                  </div>
+                  </div>   
                 </div>
               </div>
             )}
