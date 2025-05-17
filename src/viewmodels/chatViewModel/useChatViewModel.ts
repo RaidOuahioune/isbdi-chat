@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Message, Tool, Thread } from '../../types/chat';
+import { Message, Tool, Thread, AgentSelection } from '../../types/chat';
 import { mockTools } from '../../mock/mockData';
 import { createInitialThread } from './threadUtils';
 import { callToolSpecificApi } from './toolApi';
@@ -18,7 +18,7 @@ import {
   handleToolResponseStreaming
 } from './streamingOperations';
 import { v4 as uuidv4 } from 'uuid';
-import { summarizeApiResponse, generateContentStream } from '../../llms/gemini';
+import { summarizeApiResponse, generateContentStream, detectAgent } from '../../llms/gemini';
 
 // Type definitions for extracted functions
 interface StreamingParams {
@@ -29,6 +29,7 @@ interface StreamingParams {
   setIsStreaming: (isStreaming: boolean) => void;
   setStreamingContent: (content: string) => void;
   messages: Message[];
+  updateThreadAgentSelection?: (threadId: string, agentSelection: AgentSelection) => void;
 }
 
 interface ToolSelectionParams extends StreamingParams {
@@ -112,8 +113,6 @@ async function handleToolSelection({
   selectedTools,
   activeThreadId,
   updatedMessages,
-  messages,
-  userMessage,
   updateThreadMessages,
   setIsStreaming,
   setStreamingContent,
@@ -121,78 +120,108 @@ async function handleToolSelection({
 }: ToolSelectionParams): Promise<void> {
   const selectedTool = selectedTools[0]; // Currently only supporting one tool at a time
   
-  // Call the tool-specific API
-  const apiResponse = await callToolSpecificApi(content, selectedTool, activeThreadId);
-  
-  // Store the API response data in the message for later use in the detail panel
-  // But don't automatically open the panel
-  
-  // Start streaming the summary
-  setIsStreaming(true);
-  setStreamingContent('');
-  
-  // Create a placeholder message that will be updated with streaming content
-  const placeholderMessage: Message = {
-    id: uuidv4(),
-    content: '',
-    role: 'assistant',
-    timestamp: new Date(),
-    isStreaming: true
-  };
-  
-  const messagesWithPlaceholder = [...updatedMessages, placeholderMessage];
-  updateThreadMessages(activeThreadId, messagesWithPlaceholder);
-  
-  // Start summarizing the API response
-  const summaryStream = await summarizeApiResponse(
-    typeof apiResponse.content === 'string' ? apiResponse.content : JSON.stringify(apiResponse.content),
-    content // Original user query as context
-  );
-  
-  let summaryText = '';
-  
-  // Process the streaming summary
-  for await (const chunk of summaryStream) {
-    if (chunk.text) {
-      summaryText += chunk.text;
-      setStreamingContent(summaryText);
+  try {
+    // Call the tool-specific API
+    const apiResponse = await callToolSpecificApi(content, selectedTool, activeThreadId);
+    
+    // Store the API response data in the message for later use in the detail panel
+    // But don't automatically open the panel
+    
+    // Start streaming the summary
+    setIsStreaming(true);
+    setStreamingContent('');
+    
+    // Create a placeholder message that will be updated with streaming content
+    const placeholderMessage: Message = {
+      id: uuidv4(),
+      content: '',
+      role: 'assistant',
+      timestamp: new Date(),
+      isStreaming: true
+    };
+    
+    const messagesWithPlaceholder = [...updatedMessages, placeholderMessage];
+    updateThreadMessages(activeThreadId, messagesWithPlaceholder);
+    
+    // Start summarizing the API response
+    const summaryStream = await summarizeApiResponse(
+      typeof apiResponse.content === 'string' ? apiResponse.content : JSON.stringify(apiResponse.content),
+      content // Original user query as context
+    );
+    
+    let summaryText = '';
+    
+    try {
+      // Process the streaming response
+      for await (const chunk of summaryStream) {
+        if (chunk.text) {
+          summaryText += chunk.text;
+          setStreamingContent(summaryText);
+          
+          // Update the placeholder message with the current content
+          const updatedPlaceholderMessage = {
+            ...placeholderMessage,
+            content: summaryText,
+          };
+          
+          const streamingMessages = [...updatedMessages, updatedPlaceholderMessage];
+          updateThreadMessages(activeThreadId, streamingMessages);
+        }
+      }
       
-      // Update the placeholder message with the current summary
-      const updatedPlaceholder = {
-        ...placeholderMessage,
-        content: summaryText
+      // Create the final message with the complete summary and tool results
+      const finalAssistantMessage: Message = {
+        id: uuidv4(),
+        content: summaryText,
+        role: 'assistant',
+        timestamp: new Date(),
+        toolResults: apiResponse.toolResults
       };
       
-      // Create a new array with the updated placeholder message
-      const currentMessages = messages.concat(userMessage);
-      const messagesWithUpdatedPlaceholder = [
-        ...currentMessages.slice(0, -1),
-        updatedPlaceholder
-      ];
+      // Update the thread with the final message
+      const finalMessages = [...updatedMessages, finalAssistantMessage];
+      updateThreadMessages(activeThreadId, finalMessages);
       
-      updateThreadMessages(activeThreadId, messagesWithUpdatedPlaceholder);
+      // Mark that tools have been used in this thread
+      setToolUsed(true);
+    } catch (error) {
+      console.error('Error in streaming summary:', error);
+      throw error; // Let the outer catch block handle this
+    } finally {
+      setIsStreaming(false);
     }
-  }
-  
-
-  const assistantMessage: Message = {
-    id: apiResponse.id || uuidv4(),
-    content: summaryText,
-    role: 'assistant',
-    timestamp: new Date(),
-    toolResults: [{
+  } catch (error) {
+    // Check if the error is related to missing required information
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Create an error message to display to the user
+    const assistantErrorMessage: Message = {
       id: uuidv4(),
-      toolName: selectedTool.name,
-      result: apiResponse.toolResults?.[0]?.result || apiResponse.content
-    }]
-  };
-  
-  const finalMessages = [...updatedMessages, assistantMessage];
-  updateThreadMessages(activeThreadId, finalMessages);
-  
-  // Mark that a tool has been used in this thread
-  setToolUsed(true);
-  setIsStreaming(false);
+      content: errorMessage.includes('Missing required information') ?
+        `I need more information to design this product. ${errorMessage}` :
+        `Error using ${selectedTool.name}: ${errorMessage}`,
+      role: 'assistant',
+      timestamp: new Date(),
+      // Add a custom property to the toolResults to indicate this is an error
+      toolResults: [{
+        id: uuidv4(),
+        toolName: selectedTool.name,
+        result: { error: errorMessage }
+      }]
+    };
+    
+    // Add the error message to the thread
+    const finalMessages = [...updatedMessages, assistantErrorMessage];
+    updateThreadMessages(activeThreadId, finalMessages);
+    
+    // Don't mark tool as used if there was an error due to missing information
+    if (!errorMessage.includes('Missing required information')) {
+      setToolUsed(true);
+    }
+    
+    // Re-throw to be caught by the outer catch block
+    throw error;
+  }
 }
 
 export const useChatViewModel = (): ChatViewModel => {
@@ -205,7 +234,9 @@ export const useChatViewModel = (): ChatViewModel => {
   const [toolUsed, setToolUsed] = useState<boolean>(false);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [streamingContent, setStreamingContent] = useState<string>('');
-  
+  const [isAutoDetectAgent, setIsAutoDetectAgent] = useState<boolean>(true);
+  const [isDetectingAgent, setIsDetectingAgent] = useState<boolean>(false);
+
   // Get panel utilities
   const {
     detailPanelContent,
@@ -222,12 +253,28 @@ export const useChatViewModel = (): ChatViewModel => {
     };
   }, [threads, activeThreadId]);
 
-  // Update messages in the current thread
+  // Update thread messages
   const updateThreadMessages = useCallback((threadId: string, updatedMessages: Message[]) => {
     setThreads(prevThreads => 
       prevThreads.map(thread => {
         if (thread.id === threadId) {
           return updateThreadWithMessages(thread, updatedMessages);
+        }
+        return thread;
+      })
+    );
+  }, []);
+
+  // Update thread agent selection
+  const updateThreadAgentSelection = useCallback((threadId: string, agentSelection: AgentSelection) => {
+    setThreads(prevThreads => 
+      prevThreads.map(thread => {
+        if (thread.id === threadId) {
+          return {
+            ...thread,
+            agentSelection,
+            agentId: agentSelection.agentId
+          };
         }
         return thread;
       })
@@ -246,6 +293,58 @@ export const useChatViewModel = (): ChatViewModel => {
     setIsLoading(true);
     
     try {
+      // If auto-detect agent is enabled and no tools have been used yet, detect the appropriate agent
+      if (isAutoDetectAgent && !toolUsed && selectedTools.length === 0) {
+        setIsDetectingAgent(true);
+        try {
+          const detectedAgent = await detectAgent(content);
+          if (detectedAgent) {
+            // If the detected agent is 'chat', clear any selected tools
+            if (detectedAgent.agentId === 'chat') {
+              // Update the thread with the chat agent
+              updateThreadAgentSelection(activeThreadId, {
+                agentId: 'chat',
+                reason: detectedAgent.reason,
+                status: 'suggested',
+                requiredInputs: []
+              });
+              // Clear selected tools to use default chat behavior
+              setSelectedTools([]);
+            } else {
+              // For specialized agents, find the matching tool
+              const matchingTool = availableTools.find(tool => tool.id === detectedAgent.agentId);
+              if (matchingTool) {
+                // Update the thread with the detected agent
+                updateThreadAgentSelection(activeThreadId, detectedAgent);
+                // Set the selected tool based on the detected agent
+                setSelectedTools([matchingTool]);
+                
+                // Immediately use the detected tool
+                await handleToolSelection({
+                  content,
+                  selectedTools: [matchingTool],
+                  activeThreadId,
+                  updatedMessages,
+                  messages,
+                  userMessage,
+                  updateThreadMessages,
+                  setIsStreaming,
+                  setStreamingContent,
+                  setToolUsed
+                });
+                
+                // Return early since we've already handled the message
+                return;
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error detecting agent:', error);
+        } finally {
+          setIsDetectingAgent(false);
+        }
+      }
+      
       // If tools have already been used in this thread, disable them
       if (toolUsed) {
         await handleGeminiStreamingWithHistory({
@@ -258,7 +357,7 @@ export const useChatViewModel = (): ChatViewModel => {
           messages
         });
       }
-      // If a tool is selected and tools haven't been used yet in this thread
+      // If tools are selected, use them
       else if (selectedTools.length > 0) {
         await handleToolSelection({
           content,
@@ -275,15 +374,44 @@ export const useChatViewModel = (): ChatViewModel => {
       } 
       // If no tool is selected and tools haven't been used yet
       else {
-        await handleGeminiStreamingWithHistory({
-          userMessage,
-          updatedMessages,
-          activeThreadId,
-          updateThreadMessages,
-          setIsStreaming,
-          setStreamingContent,
-          messages
-        });
+        setIsStreaming(true);
+        setStreamingContent('');
+        const detectedToolToUse = availableTools.find(tool => tool.id === 'chat');
+        if (detectedToolToUse) {
+          console.log(`Using detected tool: ${detectedToolToUse.id}`);
+          // Call the tool-specific API
+          const apiResponse = await callToolSpecificApi(content, detectedToolToUse, activeThreadId);
+          
+          // Create an assistant message with the API response
+          const assistantMessageId = uuidv4();
+          const assistantMessage: Message = {
+            id: assistantMessageId,
+            content: apiResponse.content,
+            role: 'assistant',
+            timestamp: new Date(),
+            toolResults: apiResponse.toolResults
+          };
+          
+          // Add the assistant message to the thread
+          const finalMessages = [...updatedMessages, assistantMessage];
+          updateThreadMessages(activeThreadId, finalMessages);
+          
+          // If there are tool results, open the detail panel
+          if (apiResponse.toolResults && apiResponse.toolResults.length > 0) {
+            openDetailPanel(apiResponse.toolResults[0].result);
+            setToolUsed(true);
+          }
+        } else {
+          await handleGeminiStreamingWithHistory({
+            userMessage,
+            updatedMessages,
+            activeThreadId,
+            updateThreadMessages,
+            setIsStreaming,
+            setStreamingContent,
+            messages
+          });
+        }
       }
     } catch (error) {
       // Handle API error
@@ -315,12 +443,20 @@ export const useChatViewModel = (): ChatViewModel => {
         // If selecting a different tool, replace the entire selection with just this tool
         const toolToAdd = availableTools.find((tool) => tool.id === toolId);
         if (toolToAdd) {
+          // Update the thread with the manually selected agent
+          if (activeThreadId) {
+            updateThreadAgentSelection(activeThreadId, {
+              agentId: toolId,
+              reason: 'Manually selected by user',
+              status: 'overridden'
+            });
+          }
           return [toolToAdd];
         }
         return [];
       }
     });
-  }, [availableTools, toolUsed]);
+  }, [availableTools, toolUsed, activeThreadId, updateThreadAgentSelection]);
 
   const clearChat = useCallback(() => {
     if (activeThreadId) {
@@ -391,6 +527,8 @@ export const useChatViewModel = (): ChatViewModel => {
     toolUsed,
     isStreaming,
     streamingContent,
+    isAutoDetectAgent,
+    isDetectingAgent,
     sendMessage,
     toggleTool,
     clearChat,
@@ -400,5 +538,6 @@ export const useChatViewModel = (): ChatViewModel => {
     deleteThread,
     openDetailPanel,
     closeDetailPanel,
+    setIsAutoDetectAgent,
   };
 };

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sidebar } from './Sidebar';
 import { ChatContainer } from './ChatContainer';
+import AgentStatusBar from './AgentStatusBar';
 
 import { useDarkMode } from '../hooks/useDarkMode';
 import { ChatViewModel } from '../viewmodels/chatViewModel';
@@ -12,6 +13,7 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ viewModel }) => {
   const { theme, toggleTheme } = useDarkMode();
   
+  // Use destructuring with type assertion to fix TypeScript errors
   const {
     messages,
     isLoading,
@@ -33,8 +35,16 @@ export const Layout: React.FC<LayoutProps> = ({ viewModel }) => {
     selectThread,
     deleteThread,
     openDetailPanel,
-    closeDetailPanel
+    closeDetailPanel,
   } = viewModel;
+  
+  // Use type assertion for the new properties
+  const isAutoDetectAgent = (viewModel as any).isAutoDetectAgent || false;
+  const isDetectingAgent = (viewModel as any).isDetectingAgent || false;
+  const setIsAutoDetectAgent = (viewModel as any).setIsAutoDetectAgent || ((isEnabled: boolean) => {
+    // This is a fallback implementation that does nothing
+    console.log(`Auto-detect agent ${isEnabled ? 'enabled' : 'disabled'}`); 
+  });
 
   return (
     <div className="flex h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
@@ -117,6 +127,17 @@ export const Layout: React.FC<LayoutProps> = ({ viewModel }) => {
             </div>
           </div>
         </header>
+        
+        {/* Agent Status Bar */}
+        {(selectedTools.length > 0 || isDetectingAgent) && (
+          <AgentStatusBar
+            selectedTool={selectedTools[0]}
+            agentSelection={activeThreadId ? threads.find(t => t.id === activeThreadId)?.agentSelection : undefined}
+            isDetectingAgent={isDetectingAgent}
+            isAutoDetectAgent={isAutoDetectAgent}
+            setIsAutoDetectAgent={setIsAutoDetectAgent}
+          />
+        )}
         
         <ChatContainer
           messages={messages}

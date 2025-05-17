@@ -29,6 +29,13 @@ export interface Agent {
   isDefault?: boolean;
 }
 
+export interface AgentSelection {
+  agentId: string;
+  reason: string;
+  requiredInputs?: string[];
+  status: 'suggested' | 'confirmed' | 'overridden';
+}
+
 export interface Thread {
   id: string;
   title: string;
@@ -36,4 +43,5 @@ export interface Thread {
   updatedAt: Date;
   messages: Message[];
   agentId?: string;
+  agentSelection?: AgentSelection;
 }

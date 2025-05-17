@@ -13,6 +13,8 @@ export interface ChatViewModel {
   toolUsed: boolean;
   isStreaming: boolean;
   streamingContent: string;
+  isAutoDetectAgent: boolean;
+  isDetectingAgent: boolean;
   sendMessage: (content: string) => Promise<void>;
   toggleTool: (toolId: string) => void;
   clearChat: () => void;
@@ -22,4 +24,5 @@ export interface ChatViewModel {
   deleteThread: (threadId: string) => void;
   openDetailPanel: (content: any) => void;
   closeDetailPanel: () => void;
+  setIsAutoDetectAgent: (value: boolean) => void;
 }
