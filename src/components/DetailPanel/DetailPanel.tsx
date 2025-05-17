@@ -48,6 +48,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({
     if (typeof content === 'string') {
       try {
         const parsedJson = JSON.parse(content);
+        console.log("parsedJson", parsedJson);
         if (typeof parsedJson === 'object' && parsedJson !== null) {
           // Check if it's a Use Case (Journaling) response
           if ('scenario' in parsedJson && 'accounting_guidance' in parsedJson) {

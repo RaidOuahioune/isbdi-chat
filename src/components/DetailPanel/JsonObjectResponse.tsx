@@ -1,4 +1,67 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
+
+// Helper function to check if a string might contain markdown
+const containsMarkdown = (text: string): boolean => {
+  // Check for common markdown patterns
+  const markdownPatterns = [
+    /\*\*(.*?)\*\*/,  // Bold
+    /\*(.*?)\*/,      // Italic
+    /\[.*?\]\(.*?\)/, // Links
+    /^#+\s/m,         // Headers
+    /^-\s/m,          // List items
+    /^\d+\.\s/m,      // Numbered list
+    /^>\s/m,          // Blockquotes
+    /```[\s\S]*?```/, // Code blocks
+    /`.*?`/           // Inline code
+  ];
+  
+  return markdownPatterns.some(pattern => pattern.test(text));
+};
+
+// Helper function to render nested objects recursively
+const renderNestedObject = (obj: any, depth: number = 0): JSX.Element => {
+  if (obj === null) return <span className="text-gray-500 italic">null</span>;
+  
+  if (Array.isArray(obj)) {
+    return (
+      <ul className="list-disc pl-5 space-y-2 my-2">
+        {obj.map((item, i) => (
+          <li key={i} className="text-gray-800 dark:text-gray-200">
+            {typeof item === 'object' && item !== null 
+              ? renderNestedObject(item, depth + 1)
+              : typeof item === 'string' && containsMarkdown(item)
+                ? <ReactMarkdown>{item}</ReactMarkdown>
+                : String(item)}
+          </li>
+        ))}
+      </ul>
+    );
+  }
+  
+  if (typeof obj === 'object') {
+    return (
+      <div className={`${depth > 0 ? 'border-l-2 border-gray-300 dark:border-gray-600 pl-4 my-2' : ''}`}>
+        {Object.entries(obj).map(([key, value], i) => (
+          <div key={key} className="mb-3">
+            <div className="font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {key.replace(/_/g, ' ').charAt(0).toUpperCase() + key.replace(/_/g, ' ').slice(1)}:
+            </div>
+            <div className="pl-2">
+              {typeof value === 'object' && value !== null
+                ? renderNestedObject(value, depth + 1)
+                : typeof value === 'string' && containsMarkdown(value)
+                  ? <ReactMarkdown>{value}</ReactMarkdown>
+                  : <span className="text-gray-800 dark:text-gray-200">{String(value)}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  
+  return <span>{String(obj)}</span>;
+};
 
 export const JsonObjectResponse: React.FC<{ jsonObject: Record<string, any> }> = ({ jsonObject }) => {
   return (
@@ -36,19 +99,11 @@ export const JsonObjectResponse: React.FC<{ jsonObject: Record<string, any> }> =
                 </div>
                 <div className={`${colorSet.bg} ${colorSet.dark.bg} p-4 rounded-b-lg border-l-4 ${colorSet.border} ${colorSet.dark.border}`}>
                   {typeof value === 'object' && value !== null ? (
-                    Array.isArray(value) ? (
-                      <ul className="list-disc pl-5 space-y-1">
-                        {value.map((item, i) => (
-                          <li key={i} className="text-gray-800 dark:text-gray-200">
-                            {typeof item === 'object' && item !== null ? JSON.stringify(item, null, 2) : String(item)}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 font-mono">
-                        {JSON.stringify(value, null, 2)}
-                      </pre>
-                    )
+                    renderNestedObject(value)
+                  ) : typeof value === 'string' && containsMarkdown(value) ? (
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown>{value}</ReactMarkdown>
+                    </div>
                   ) : (
                     <p className="text-gray-800 dark:text-gray-200">{String(value)}</p>
                   )}

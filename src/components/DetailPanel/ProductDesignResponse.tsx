@@ -9,6 +9,7 @@ interface ProductDesignResponseProps {
 }
 
 export const ProductDesignResponse: React.FC<ProductDesignResponseProps> = ({ data }) => {
+  console.log("data", data);  
   return (
     <Card variant="outlined" sx={{ mb: 2 }}>
       <CardContent>
@@ -72,6 +73,8 @@ export const ProductDesignResponse: React.FC<ProductDesignResponseProps> = ({ da
         <Typography variant="h6" sx={{ mt: 2 }}>AAOIFI FAS Considerations</Typography>
         <Box sx={{ mb: 2 }}>
           {Object.entries(data.key_aaoifi_fas_considerations).map(([key, value]) => {
+            console.log("key", key);
+            console.log("value", value);
             // Skip if not a numbered key (we only want to process the pattern properties with numeric keys)
             if (!/^\d+$/.test(key)) return null;
             
@@ -83,17 +86,19 @@ export const ProductDesignResponse: React.FC<ProductDesignResponseProps> = ({ da
             
             return (
               <Box key={key} sx={{ mb: 2 }}>
-                <Typography variant="subtitle2">
-                  <ReactMarkdown>{`**FAS ${consideration.standard_id}**`}</ReactMarkdown>
+                <Typography variant="subtitle1" fontWeight="bold">
+                  FAS {consideration.standard_id}
                 </Typography>
-                <Typography variant="body2" sx={{ fontStyle: 'italic', mb: 1 }}>
-                  <ReactMarkdown>{consideration.query}</ReactMarkdown>
+                <Typography variant="body2" sx={{ fontStyle: 'italic', mb: 1, color: 'text.secondary' }}>
+                  {consideration.query}
                 </Typography>
-                <Typography variant="body2">
-                  <ReactMarkdown>{consideration.extracted_info}</ReactMarkdown>
-                </Typography>
+                <Box sx={{ bgcolor: 'background.paper', p: 2, borderRadius: 1, mt: 1 }}>
+                  <ReactMarkdown>
+                    {consideration.extracted_info}
+                  </ReactMarkdown>
+                </Box>
                 {parseInt(key) < Object.keys(data.key_aaoifi_fas_considerations).length - 1 && (
-                  <Divider sx={{ my: 1 }} />
+                  <Divider sx={{ my: 2 }} />
                 )}
               </Box>
             );
