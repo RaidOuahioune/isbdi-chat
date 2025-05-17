@@ -1,9 +1,17 @@
 import React, { useEffect, useRef } from 'react';
-import { DetailPanelProps, UseCaseResponseData, AnalyzerResponseData } from './types';
+import { 
+  DetailPanelProps, 
+  UseCaseResponseData, 
+  AnalyzerResponseData,
+  ProductDesignResponseData,
+  ComplianceVerificationResponseData 
+} from './types';
 import { UseCaseResponse } from './UseCaseResponse';
 import { AnalyzerResponse } from './AnalyzerResponse';
 import { JsonObjectResponse } from './JsonObjectResponse';
 import { TextResponse } from './TextResponse';
+import { ProductDesignResponse } from './ProductDesignResponse';
+import { ComplianceVerificationResponse } from './ComplianceVerificationResponse';
 
 export const DetailPanel: React.FC<DetailPanelProps> = ({
   isOpen,
@@ -47,8 +55,18 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({
           }
           
           // Check if it's an Analyzer response
-          if ('analysis' in parsedJson) {
+          if ('analysis' in parsedJson && 'identified_standards' in parsedJson) {
             return <AnalyzerResponse data={parsedJson as AnalyzerResponseData} />;
+          }
+          
+          // Check if it's a Product Design response
+          if ('suggested_product_concept_name' in parsedJson && 'recommended_islamic_contracts' in parsedJson) {
+            return <ProductDesignResponse data={parsedJson as ProductDesignResponseData} />;
+          }
+          
+          // Check if it's a Compliance Verification response
+          if ('compliance_report' in parsedJson && 'structured_report' in parsedJson) {
+            return <ComplianceVerificationResponse data={parsedJson as ComplianceVerificationResponseData} />;
           }
           
           // Default JSON object rendering

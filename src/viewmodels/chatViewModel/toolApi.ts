@@ -1,6 +1,10 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Tool } from '../../types/chat';
-import { api } from '../../api';
+import { 
+  api, 
+  ProductDesignPayload, 
+  ComplianceVerificationPayload
+} from '../../api';
 
 // Handle tool-specific API calls
 export const callToolSpecificApi = async (content: string, tool: Tool, activeThreadId: string | null) => {
@@ -35,10 +39,7 @@ export const callToolSpecificApi = async (content: string, tool: Tool, activeThr
             id: uuidv4(),
             toolName: 'Analyzer',
             result: {
-              analysis: transactionResponse.analysis,
-              compliant: transactionResponse.compliant,
-              rationale: transactionResponse.rationale,
-            
+              ...transactionResponse
             }
           }]
         };
@@ -70,6 +71,36 @@ export const callToolSpecificApi = async (content: string, tool: Tool, activeThr
         };
       }
         
+      case 'product-design': {
+        // Handle product design tool
+        const payload: ProductDesignPayload = JSON.parse(content);
+        const response = await api.designProduct(payload);
+        return {
+          id: uuidv4(),
+          content: `Product Design: ${response.suggested_product_concept_name}\n\n${response.rationale_for_contract_selection}`,
+          toolResults: [{
+            id: uuidv4(),
+            toolName: 'Product Design',
+            result: response
+          }]
+        };
+      }
+
+      case 'compliance-verification': {
+        // Handle compliance verification tool
+        const payload: ComplianceVerificationPayload = JSON.parse(content);
+        const response = await api.verifyCompliance(payload);
+        return {
+          id: uuidv4(),
+          content: `Compliance Verification Report for ${response.document_name}\n\n${response.compliance_report}`,
+          toolResults: [{
+            id: uuidv4(),
+            toolName: 'Compliance Verification',
+            result: response
+          }]
+        };
+      }
+
       default: {
         // For any other tool or when no specific tool handling is implemented
         // Use the generic chat agent API

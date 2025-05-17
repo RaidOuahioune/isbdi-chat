@@ -20,6 +20,18 @@ export const mockTools: Tool[] = [
     description: 'Enhance and improve standards and documentation',
     icon: '✨',
   },
+  {
+    id: 'product-design',
+    name: 'Product Design',
+    description: 'Design Shariah-compliant financial products',
+    icon: '💼',
+  },
+  {
+    id: 'compliance-verification',
+    name: 'Compliance Verification',
+    description: 'Verify compliance with AAOIFI standards',
+    icon: '✅',
+  },
 ];
 
 // Mock agents

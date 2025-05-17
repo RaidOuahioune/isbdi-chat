@@ -3,6 +3,55 @@ import axios from "axios";
 // API base URL - adjust this to your actual API endpoint
 const API_BASE_URL = 'http://localhost:8000';
 
+// ISDBI Agent API specific types
+export interface ProductDesignPayload {
+  product_objective: string;
+  risk_appetite: string;
+  investment_tenor: string;
+  target_audience: string;
+  asset_focus?: string;
+  desired_features: string[];
+  specific_exclusions: string[];
+  additional_notes?: string;
+}
+
+export interface ComplianceVerificationPayload {
+  document_content: string;
+  document_name?: string;
+}
+
+export interface ProductDesignResponse {
+  suggested_product_concept_name: string;
+  recommended_islamic_contracts: string[];
+  original_requirements: Omit<ProductDesignPayload, 'additional_notes'> & {
+    additional_notes: string;
+  };
+  rationale_for_contract_selection: string;
+  proposed_product_structure_overview: string;
+  key_aaoifi_fas_considerations: {
+    standard_id: string;
+    [key: string]: any;
+  };
+  shariah_compliance_checkpoints: string[];
+  potential_areas_of_concern: string[];
+  potential_risks_and_mitigation_notes: string;
+  next_steps_for_detailed_design: string[];
+}
+
+export interface ComplianceVerificationResponse {
+  document_name: string;
+  timestamp: string;
+  compliance_report: string;
+  structured_report: Array<{
+    standard: string;
+    requirement: string;
+    status: string;
+    status_code: 'compliant' | 'partial' | 'missing';
+    comments: string;
+  }>;
+  document: string;
+}
+
 export interface ToolRequestPayload {
   content: string;
   threadId?: string;
@@ -145,7 +194,7 @@ export const api = {
   },
   
   // Perform detailed transaction analysis with the analyzer tool
-  analyzeTransactionDetailed: async (payload: DetailedTransactionPayload): Promise<DetailedTransactionResponse> => {
+  analyzeTransactionDetailed: async (payload: DetailedTransactionPayload): Promise<any> => {
     try {
       const response = await apiClient.post("/transaction/analyze", payload);
       return response.data;
@@ -158,11 +207,36 @@ export const api = {
   // Enhance standards with the enhancer tool
   enhanceStandards: async (payload: StandardsEnhancementPayload): Promise<StandardsEnhancementResponse> => {
     try {
-      const response = await apiClient.post("/enhancement/standards", payload);
+      const response = await apiClient.post("/standards/enhance", payload);
       return response.data;
     } catch (error) {
       console.error("Standards enhancement error:", error);
       throw error;
     }
-  }
+  },
+
+  // Design a Shariah-compliant financial product
+  designProduct: async (payload: ProductDesignPayload): Promise<ProductDesignResponse> => {
+    try {
+      const response = await apiClient.post("/product-design", payload);
+      return response.data;
+    } catch (error) {
+      console.error("Product design error:", error);
+      throw error;
+    }
+  },
+
+  // Verify compliance of a financial report with AAOIFI standards
+  verifyCompliance: async (payload: ComplianceVerificationPayload): Promise<ComplianceVerificationResponse> => {
+    try {
+      const response = await apiClient.post("/compliance/verify", {
+        document_name: 'Uploaded Document',
+        ...payload
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Compliance verification error:", error);
+      throw error;
+    }
+  },
 };
