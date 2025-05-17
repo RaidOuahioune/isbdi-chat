@@ -12,13 +12,16 @@ import {
   updateThreadWithMessages,
   hasThreadUsedTools
 } from './threadMessageUtils';
-import { createThreadStateManager } from './threadStateUtils';
-import {
-  handleGeminiChatStreaming,
-  handleToolResponseStreaming
-} from './streamingOperations';
+// Custom function for handling streaming responses
 import { v4 as uuidv4 } from 'uuid';
-import { summarizeApiResponse, generateContentStream, detectAgent } from '../../llms/gemini';
+
+import { summarizeApiResponse, generateContentStream, detectAgent, AgentDetectionResult } from '../../llms/gemini';
+import {
+  validateRequiredFields,
+  createSystemPromptMessage,
+  isResponseToSystemPrompt,
+  getCombinedMessageForValidation
+} from './requiredFieldsValidator';
 
 // Type definitions for extracted functions
 interface StreamingParams {
@@ -236,6 +239,7 @@ export const useChatViewModel = (): ChatViewModel => {
   const [streamingContent, setStreamingContent] = useState<string>('');
   const [isAutoDetectAgent, setIsAutoDetectAgent] = useState<boolean>(true);
   const [isDetectingAgent, setIsDetectingAgent] = useState<boolean>(false);
+  const [pendingAgentSelection, setPendingAgentSelection] = useState<AgentDetectionResult | null>(null);
 
   // Get panel utilities
   const {
@@ -293,6 +297,61 @@ export const useChatViewModel = (): ChatViewModel => {
     setIsLoading(true);
     
     try {
+      // Check if this is a response to a previous system prompt for missing fields
+      const isResponseToPrompt = isResponseToSystemPrompt(messages);
+      
+      // If we have a pending agent selection and this is a response to a prompt,
+      // combine the current message with previous context for validation
+      if (pendingAgentSelection && isResponseToPrompt) {
+        // Combine messages to check if all required fields are now provided
+        const combinedMessage = getCombinedMessageForValidation(messages, content);
+        
+        // Validate if all required fields are now present
+        const validationResult = validateRequiredFields(pendingAgentSelection, combinedMessage);
+        
+        if (validationResult.isValid) {
+          // All required fields are present, proceed with the agent
+          const matchingTool = availableTools.find(tool => tool.id === pendingAgentSelection.agentId);
+          if (matchingTool) {
+            // Update the thread with the confirmed agent
+            updateThreadAgentSelection(activeThreadId, {
+              ...pendingAgentSelection,
+              status: 'confirmed'
+            });
+            
+            // Set the selected tool based on the confirmed agent
+            setSelectedTools([matchingTool]);
+            
+            // Clear the pending agent selection
+            setPendingAgentSelection(null);
+            
+            // Use the tool with the combined message content
+            await handleToolSelection({
+              content: combinedMessage, // Use combined message for better context
+              selectedTools: [matchingTool],
+              activeThreadId,
+              updatedMessages,
+              messages,
+              userMessage,
+              updateThreadMessages,
+              setIsStreaming,
+              setStreamingContent,
+              setToolUsed
+            });
+            
+            // Return early since we've already handled the message
+            return;
+          }
+        } else {
+          // Still missing some fields, send another system prompt
+          const systemPrompt = createSystemPromptMessage(validationResult);
+          const promptMessages = [...updatedMessages, systemPrompt];
+          updateThreadMessages(activeThreadId, promptMessages);
+          setIsLoading(false);
+          return;
+        }
+      }
+      
       // If auto-detect agent is enabled and no tools have been used yet, detect the appropriate agent
       if (isAutoDetectAgent && !toolUsed && selectedTools.length === 0) {
         setIsDetectingAgent(true);
@@ -314,27 +373,43 @@ export const useChatViewModel = (): ChatViewModel => {
               // For specialized agents, find the matching tool
               const matchingTool = availableTools.find(tool => tool.id === detectedAgent.agentId);
               if (matchingTool) {
-                // Update the thread with the detected agent
-                updateThreadAgentSelection(activeThreadId, detectedAgent);
-                // Set the selected tool based on the detected agent
-                setSelectedTools([matchingTool]);
+                // Validate if all required fields are present
+                const validationResult = validateRequiredFields(detectedAgent, content);
                 
-                // Immediately use the detected tool
-                await handleToolSelection({
-                  content,
-                  selectedTools: [matchingTool],
-                  activeThreadId,
-                  updatedMessages,
-                  messages,
-                  userMessage,
-                  updateThreadMessages,
-                  setIsStreaming,
-                  setStreamingContent,
-                  setToolUsed
-                });
-                
-                // Return early since we've already handled the message
-                return;
+                if (validationResult.isValid) {
+                  // All required fields are present, proceed with the agent
+                  // Update the thread with the detected agent
+                  updateThreadAgentSelection(activeThreadId, detectedAgent);
+                  // Set the selected tool based on the detected agent
+                  setSelectedTools([matchingTool]);
+                  
+                  // Immediately use the detected tool
+                  await handleToolSelection({
+                    content,
+                    selectedTools: [matchingTool],
+                    activeThreadId,
+                    updatedMessages,
+                    messages,
+                    userMessage,
+                    updateThreadMessages,
+                    setIsStreaming,
+                    setStreamingContent,
+                    setToolUsed
+                  });
+                  
+                  // Return early since we've already handled the message
+                  return;
+                } else {
+                  // Missing required fields, store the pending agent selection
+                  setPendingAgentSelection(detectedAgent);
+                  
+                  // Send a system prompt for the missing fields
+                  const systemPrompt = createSystemPromptMessage(validationResult);
+                  const promptMessages = [...updatedMessages, systemPrompt];
+                  updateThreadMessages(activeThreadId, promptMessages);
+                  setIsLoading(false);
+                  return;
+                }
               }
             }
           }
@@ -342,6 +417,8 @@ export const useChatViewModel = (): ChatViewModel => {
           console.error('Error detecting agent:', error);
         } finally {
           setIsDetectingAgent(false);
+          // Clear any pending agent selection if we're not proceeding with it
+          setPendingAgentSelection(null);
         }
       }
       
@@ -529,6 +606,7 @@ export const useChatViewModel = (): ChatViewModel => {
     streamingContent,
     isAutoDetectAgent,
     isDetectingAgent,
+    pendingAgentSelection,
     sendMessage,
     toggleTool,
     clearChat,

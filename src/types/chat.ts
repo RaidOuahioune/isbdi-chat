@@ -5,6 +5,7 @@ export interface Message {
   timestamp: Date;
   toolResults?: ToolResult[];
   isStreaming?: boolean;
+  isSystemPrompt?: boolean;
 }
 
 export interface ToolResult {

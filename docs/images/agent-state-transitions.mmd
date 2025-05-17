@@ -1,0 +1,39 @@
+stateDiagram-v2
+    [*] --> NoAgent: Initial State
+    NoAgent --> DetectingAgent: User submits query
+    DetectingAgent --> AgentSuggested: Agent Router analysis
+    AgentSuggested --> AgentConfirmed: User confirms
+    AgentSuggested --> AgentOverridden: User selects different agent
+    NoAgent --> AgentOverridden: User manually selects agent
+    AgentConfirmed --> ProcessingQuery: Query processing
+    AgentOverridden --> ProcessingQuery: Query processing
+    ProcessingQuery --> ResponseGeneration: Generate response
+    ResponseGeneration --> [*]: Response displayed
+    
+    state NoAgent {
+        [*] --> ReadyForSelection
+    }
+    
+    state AgentSuggested {
+        [*] --> AwaitingConfirmation
+        AwaitingConfirmation --> DisplayingSuggestion
+    }
+    
+    state ProcessingQuery {
+        [*] --> ValidatingFields
+        ValidatingFields --> FieldsValid: All required fields present
+        ValidatingFields --> FieldsInvalid: Missing required fields
+        FieldsInvalid --> RequestingAdditionalInfo
+        RequestingAdditionalInfo --> ValidatingFields: User provides info
+        FieldsValid --> CallingToolAPI
+        CallingToolAPI --> ProcessingBackend
+    }
+    
+    state ResponseGeneration {
+        [*] --> StreamingOrComplete
+        StreamingOrComplete --> Streaming: Streaming enabled
+        StreamingOrComplete --> Complete: Direct response
+        Streaming --> IncrementalUpdates
+        IncrementalUpdates --> FinalResponse
+        Complete --> FinalResponse
+    }

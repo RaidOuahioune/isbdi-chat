@@ -1,0 +1,41 @@
+graph TD
+    User[User] --> |Interacts with| UI[Chat Interface]
+    UI --> |Updates| VM[Chat ViewModel]
+    VM --> |Manages| TS[Thread State]
+    VM --> |Calls| AR[Agent Router]
+    AR --> |Selects| SA[Specialized Agents]
+    SA --> |Uses| TA[Tool API]
+    TA --> |Calls| BS[Backend Services]
+    BS --> |Returns| TA
+    TA --> |Provides results to| SA
+    SA --> |Generates response via| LLM[LLM Service]
+    LLM --> |Returns response to| VM
+    VM --> |Updates| UI
+    UI --> |Displays to| User
+    
+    subgraph "Frontend"
+        UI
+        VM
+        TS[Thread State]
+    end
+    
+    subgraph "Agent System"
+        AR
+        SA
+        LLM
+    end
+    
+    subgraph "Backend"
+        TA
+        BS
+    end
+    
+    classDef frontend fill:#d4f1f9,stroke:#05a,stroke-width:2px
+    classDef agent fill:#ffe6cc,stroke:#d79b00,stroke-width:2px
+    classDef backend fill:#d5e8d4,stroke:#82b366,stroke-width:2px
+    classDef user fill:#f5f5f5,stroke:#666,stroke-width:2px
+    
+    class UI,VM,TS frontend
+    class AR,SA,LLM agent
+    class TA,BS backend
+    class User user

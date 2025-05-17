@@ -1,0 +1,62 @@
+flowchart TD
+    Start([Start]) --> OpenApp[User opens app]
+    OpenApp --> InitialThread[System creates initial thread]
+    InitialThread --> FirstQuery[User submits first query]
+    
+    FirstQuery --> AutoDetect{Auto-detect enabled?}
+    AutoDetect -->|Yes| DetectAgent[System detects appropriate agent]
+    AutoDetect -->|No| NoAgent[No agent selected]
+    
+    DetectAgent --> SuggestAgent[System suggests agent]
+    SuggestAgent --> UserConfirm{User confirms?}
+    UserConfirm -->|Yes| ConfirmAgent[Agent confirmed]
+    UserConfirm -->|No| UserSelect[User selects different agent]
+    NoAgent --> UserSelect
+    
+    ConfirmAgent --> ProcessQuery[Process query with agent]
+    UserSelect --> ProcessQuery
+    
+    ProcessQuery --> RequiredFields{Required fields?}
+    RequiredFields -->|Yes| ValidateFields[Validate required fields]
+    RequiredFields -->|No| ProcessDirect[Process directly]
+    
+    ValidateFields --> FieldsValid{Fields valid?}
+    FieldsValid -->|Yes| ProcessDirect
+    FieldsValid -->|No| RequestFields[Request missing fields]
+    RequestFields --> UserProvides[User provides additional info]
+    UserProvides --> ValidateFields
+    
+    ProcessDirect --> UseTools{Use tools?}
+    UseTools -->|Yes| CallToolAPI[Call tool API]
+    UseTools -->|No| GenerateResponse[Generate direct response]
+    
+    CallToolAPI --> ProcessBackend[Process with backend service]
+    ProcessBackend --> FormatResults[Format tool results]
+    FormatResults --> DisplayResponse[Display response to user]
+    
+    GenerateResponse --> Streaming{Streaming?}
+    Streaming -->|Yes| StreamResponse[Stream response incrementally]
+    Streaming -->|No| CompleteResponse[Return complete response]
+    
+    StreamResponse --> DisplayResponse
+    CompleteResponse --> DisplayResponse
+    
+    DisplayResponse --> NextAction{Next action?}
+    NextAction -->|New query| NewQuery[User submits new query]
+    NextAction -->|New thread| CreateThread[Create new thread]
+    NextAction -->|Switch thread| SwitchThread[Switch to different thread]
+    NextAction -->|End| End([End])
+    
+    NewQuery --> ProcessQuery
+    CreateThread --> InitialThread
+    SwitchThread --> SelectThread[Select existing thread]
+    SelectThread --> NextAction
+    
+    classDef start fill:#f9f,stroke:#333,stroke-width:2px
+    classDef process fill:#bbf,stroke:#33f,stroke-width:1px
+    classDef decision fill:#ff9,stroke:#fc3,stroke-width:1px
+    classDef end fill:#f99,stroke:#f33,stroke-width:2px
+    
+    class Start,End start
+    class OpenApp,InitialThread,FirstQuery,DetectAgent,SuggestAgent,ConfirmAgent,UserSelect,ProcessQuery,ValidateFields,RequestFields,UserProvides,CallToolAPI,ProcessBackend,FormatResults,DisplayResponse,StreamResponse,CompleteResponse,NewQuery,CreateThread,SwitchThread,SelectThread process
+    class AutoDetect,UserConfirm,RequiredFields,FieldsValid,UseTools,Streaming,NextAction decision

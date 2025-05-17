@@ -1,0 +1,38 @@
+graph TD
+    AR[Agent Router] --> JEG[Journal Entry Generator]
+    AR --> RAL[Reverse Accounting Logic]
+    AR --> CC[Compliance Checker]
+    AR --> PDA[Product Design Advisor]
+    AR --> SE[Standards Enhancer]
+    
+    JEG --> |Processes| T1[Transaction Scenarios]
+    JEG --> |Generates| J1[Journal Entries]
+    JEG --> |References| S1[AAOIFI Standards]
+    
+    RAL --> |Analyzes| J2[Journal Entries]
+    RAL --> |Identifies| T2[Transaction Types]
+    RAL --> |References| S2[AAOIFI Standards]
+    
+    CC --> |Scans| D1[Financial Documents]
+    CC --> |Checks against| S3[AAOIFI Standards]
+    CC --> |Produces| R1[Compliance Reports]
+    
+    PDA --> |Processes| R2[Product Requirements]
+    PDA --> |Recommends| C1[Contract Types]
+    PDA --> |Identifies| CP1[Compliance Points]
+    
+    SE --> |Reviews| S4[Existing Standards]
+    SE --> |Proposes| E1[Enhancements]
+    SE --> |Performs| CA1[Cross-Standard Analysis]
+    
+    classDef router fill:#f9d5e5,stroke:#d64161,stroke-width:2px
+    classDef agent fill:#ffe6cc,stroke:#d79b00,stroke-width:2px
+    classDef input fill:#e1d5e7,stroke:#9673a6,stroke-width:2px
+    classDef output fill:#d5e8d4,stroke:#82b366,stroke-width:2px
+    classDef reference fill:#dae8fc,stroke:#6c8ebf,stroke-width:2px
+    
+    class AR router
+    class JEG,RAL,CC,PDA,SE agent
+    class T1,J2,D1,R2,S4 input
+    class J1,T2,R1,C1,E1 output
+    class S1,S2,S3,CP1,CA1 reference

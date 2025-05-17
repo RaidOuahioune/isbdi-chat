@@ -1,4 +1,5 @@
 import { Message, Tool, Thread } from '../../types/chat';
+import { AgentDetectionResult } from '../../llms/gemini';
 
 export interface ChatViewModel {
   messages: Message[];
@@ -15,6 +16,7 @@ export interface ChatViewModel {
   streamingContent: string;
   isAutoDetectAgent: boolean;
   isDetectingAgent: boolean;
+  pendingAgentSelection: AgentDetectionResult | null;
   sendMessage: (content: string) => Promise<void>;
   toggleTool: (toolId: string) => void;
   clearChat: () => void;

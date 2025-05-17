@@ -1,0 +1,48 @@
+sequenceDiagram
+    participant User
+    participant UI as Chat Interface
+    participant VM as Chat ViewModel
+    participant AR as Agent Router
+    participant SA as Specialized Agent
+    participant TA as Tool API
+    participant BS as Backend Service
+    participant LLM as LLM Service
+    
+    User->>UI: Submit Query
+    UI->>VM: Process Query
+    
+    alt Auto-detect enabled
+        VM->>AR: Detect appropriate agent
+        AR->>LLM: Analyze query
+        LLM-->>AR: Agent suggestion
+        AR-->>VM: Agent detection result
+        VM->>UI: Display agent suggestion
+        User->>UI: Confirm agent
+    else Manual selection
+        User->>UI: Select agent
+        UI->>VM: Update agent selection
+    end
+    
+    VM->>SA: Process query with agent
+    
+    alt Tool required
+        SA->>TA: Call tool API
+        TA->>BS: Process with backend service
+        BS-->>TA: Service response
+        TA-->>SA: Tool results
+    else Direct response
+        SA->>LLM: Generate response
+        LLM-->>SA: Generated response
+    end
+    
+    alt Streaming response
+        SA-->>VM: Stream response chunks
+        VM-->>UI: Update UI incrementally
+        UI-->>User: Display streaming content
+    else Complete response
+        SA-->>VM: Complete response
+        VM-->>UI: Update UI with response
+        UI-->>User: Display complete response
+    end
+    
+    Note over User,LLM: The system supports both streaming and non-streaming responses
