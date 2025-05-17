@@ -64,11 +64,9 @@ export interface DetailedTransactionPayload {
 export interface DetailedTransactionResponse {
   transaction_details: Record<string, unknown>;
   analysis: string;
-  identified_standards: string[];
-  retrieval_stats: {
-    chunk_count: number;
-    chunks_summary: string[];
-  };
+  compliant: boolean;
+  rationale: string;
+  
 }
 
 export interface StandardsEnhancementPayload {

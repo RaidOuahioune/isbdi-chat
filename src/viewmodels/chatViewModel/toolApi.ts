@@ -36,8 +36,9 @@ export const callToolSpecificApi = async (content: string, tool: Tool, activeThr
             toolName: 'Analyzer',
             result: {
               analysis: transactionResponse.analysis,
-              identifiedStandards: transactionResponse.identified_standards,
-              retrievalStats: transactionResponse.retrieval_stats
+              compliant: transactionResponse.compliant,
+              rationale: transactionResponse.rationale,
+            
             }
           }]
         };

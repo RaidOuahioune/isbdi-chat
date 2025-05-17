@@ -2,8 +2,9 @@ import React, { useRef, useEffect } from 'react';
 import { Message as MessageComponent } from './Message';
 import { ChatInput } from './ChatInput';
 import { IsdbiLogoSvg } from './IsdbiLogo';
-import { DetailPanel } from './DetailPanel';
+
 import { Message, Tool } from '../types/chat';
+import { DetailPanel } from './DetailPanel/DetailPanel';
 
 interface ChatContainerProps {
   messages: Message[];

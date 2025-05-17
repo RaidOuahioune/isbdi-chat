@@ -32,6 +32,8 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({
 
   // Format content based on type
   const renderContent = () => {
+    console.log("renderContent", content);
+    console.log("typeof content", typeof content);
     if (!content) return null;
     
     // Try to parse string content as JSON
