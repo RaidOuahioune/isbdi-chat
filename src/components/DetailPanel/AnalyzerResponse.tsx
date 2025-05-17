@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import { AnalyzerResponseData } from './types';
 
 export const AnalyzerResponse: React.FC<{ data: AnalyzerResponseData }> = ({ data }) => {
@@ -20,7 +21,9 @@ export const AnalyzerResponse: React.FC<{ data: AnalyzerResponseData }> = ({ dat
             <h3 className="text-2xl font-bold text-purple-700 dark:text-purple-300 tracking-tight">ANALYSIS</h3>
           </div>
           <div className="bg-purple-50 dark:bg-gray-800 rounded-lg p-6 border-l-4 border-purple-500 dark:border-purple-400 shadow-md">
-            <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">{data.analysis}</p>
+            <div className="prose dark:prose-invert prose-sm max-w-none">
+              <ReactMarkdown>{data.analysis}</ReactMarkdown>
+            </div>
           </div>
         </div>
         
@@ -64,7 +67,9 @@ export const AnalyzerResponse: React.FC<{ data: AnalyzerResponseData }> = ({ dat
               <h3 className="text-2xl font-bold text-blue-700 dark:text-blue-300 tracking-tight">RATIONALE</h3>
             </div>
             <div className="bg-blue-50 dark:bg-gray-800 rounded-lg p-6 border-l-4 border-blue-500 dark:border-blue-400 shadow-md">
-              <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">{data.rationale}</p>
+              <div className="prose dark:prose-invert prose-sm max-w-none">
+                <ReactMarkdown>{data.rationale}</ReactMarkdown>
+              </div>
             </div>
           </div>
         )}

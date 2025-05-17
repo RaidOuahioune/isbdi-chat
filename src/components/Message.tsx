@@ -6,6 +6,8 @@ interface MessageProps {
   onViewDetails?: () => void;
 }
 
+import ReactMarkdown from 'react-markdown';
+
 export const Message: React.FC<MessageProps> = ({ message, onViewDetails }) => {
   const isUserMessage = message.role === 'user';
   
@@ -18,8 +20,10 @@ export const Message: React.FC<MessageProps> = ({ message, onViewDetails }) => {
             : 'bg-gray-100 dark:bg-gray-700 dark:text-white rounded-bl-none'
         }`}
       >
-        <div className="whitespace-pre-wrap">
-          {message.content}
+        <div className="prose dark:prose-invert prose-sm max-w-none">
+          <ReactMarkdown>
+            {message.content}
+          </ReactMarkdown>
           {message.isStreaming && (
             <span className="inline-block ml-1 animate-pulse text-blue-400 dark:text-blue-300">▋</span>
           )}

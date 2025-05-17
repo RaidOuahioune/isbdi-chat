@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import { UseCaseResponseData } from './types';
 
 export const UseCaseResponse: React.FC<{ data: UseCaseResponseData }> = ({ data }) => {
@@ -16,7 +17,9 @@ export const UseCaseResponse: React.FC<{ data: UseCaseResponseData }> = ({ data 
             <h3 className="text-2xl font-bold text-blue-700 dark:text-blue-300 tracking-tight">SCENARIO</h3>
           </div>
           <div className="bg-blue-50 dark:bg-gray-800 rounded-lg p-6 border-l-4 border-blue-500 dark:border-blue-400 shadow-md">
-            <p className="text-gray-800 dark:text-gray-200 text-lg font-medium leading-relaxed">{data.scenario}</p>
+            <div className="prose dark:prose-invert prose-sm max-w-none">
+              <ReactMarkdown>{data.scenario}</ReactMarkdown>
+            </div>
           </div>
         </div>
         
@@ -30,7 +33,9 @@ export const UseCaseResponse: React.FC<{ data: UseCaseResponseData }> = ({ data 
             <h3 className="text-2xl font-bold text-indigo-700 dark:text-indigo-300 tracking-tight">ACCOUNTING GUIDANCE</h3>
           </div>
           <div className="bg-indigo-50 dark:bg-gray-800 rounded-lg p-6 border-l-4 border-indigo-500 dark:border-indigo-400 shadow-md">
-            <p className="text-gray-800 dark:text-gray-200 text-lg whitespace-pre-wrap leading-relaxed">{data.accounting_guidance}</p>
+            <div className="prose dark:prose-invert prose-sm max-w-none">
+              <ReactMarkdown>{data.accounting_guidance}</ReactMarkdown>
+            </div>
           </div>
         </div>
       </div>

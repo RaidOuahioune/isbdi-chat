@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 
 export const TextResponse: React.FC<{ content: string }> = ({ content }) => {
   return (
@@ -14,7 +15,9 @@ export const TextResponse: React.FC<{ content: string }> = ({ content }) => {
           <h3 className="text-xl font-bold text-teal-700 dark:text-teal-300">Response</h3>
         </div>
         <div className="bg-teal-50 dark:bg-gray-800 rounded-lg p-5 border-l-4 border-teal-500 dark:border-teal-400 shadow-sm">
-          <p className="whitespace-pre-wrap text-gray-800 dark:text-gray-200 leading-relaxed">{content}</p>
+          <div className="prose dark:prose-invert prose-sm max-w-none text-gray-800 dark:text-gray-200">
+            <ReactMarkdown>{content}</ReactMarkdown>
+          </div>
         </div>
       </div>
     </div>
