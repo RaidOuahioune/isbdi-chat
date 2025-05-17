@@ -46,11 +46,9 @@ export const callToolSpecificApi = async (content: string, tool: Tool, activeThr
       }
         
       case 'enhancer': {
-        // Extract standard ID and scenario from content (simplified implementation)
         const parts = content.split('|');
         const standardId = parts[0]?.trim() || 'unknown';
         const scenario = parts[1]?.trim() || content;
-        
         const enhancementResponse = await api.enhanceStandards({
           standard_id: standardId,
           trigger_scenario: scenario
