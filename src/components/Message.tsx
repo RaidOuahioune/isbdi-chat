@@ -29,7 +29,7 @@ export const Message: React.FC<MessageProps> = ({ message, onViewDetails }) => {
         {message.toolResults && message.toolResults.length > 0 && (
           <div className="mt-2 pt-2 border-t border-gray-300 dark:border-gray-600">
             <div className="flex justify-between items-center">
-              <p className="text-sm font-medium mb-1">Tools used:</p>
+              <p className="text-sm font-medium mb-1">Tool used: {message.toolResults[0].toolName} </p>
               {onViewDetails && (
                 <button 
                   onClick={onViewDetails}
@@ -39,19 +39,7 @@ export const Message: React.FC<MessageProps> = ({ message, onViewDetails }) => {
                 </button>
               )}
             </div>
-            {message.toolResults.map((tool) => (
-              <div
-                key={tool.id}
-                className="mt-1 p-2 bg-gray-200 dark:bg-gray-600 rounded text-sm"
-              >
-                <p className="font-medium">{tool.toolName}</p>
-                <pre className="mt-1 overflow-x-auto whitespace-pre-wrap text-xs">
-                  {typeof tool.result === 'string'
-                    ? tool.result
-                    : JSON.stringify(tool.result, null, 2)}
-                </pre>
-              </div>
-            ))}
+         
           </div>
         )}
         
